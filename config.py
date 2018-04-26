@@ -22,3 +22,4 @@ class Config(object):
     POSTS_PER_PAGE = 20
     LANGUAGES = ['en', 'es']
     MS_TRANSLATOR_KEY = os.getenv('MS_TRANSLATOR_KEY')
+    ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL')
