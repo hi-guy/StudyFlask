@@ -23,3 +23,5 @@ class Config(object):
     LANGUAGES = ['en', 'es']
     MS_TRANSLATOR_KEY = os.getenv('MS_TRANSLATOR_KEY')
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL')
+    UPLOAD_FOLDER = 'static/uploads'
+    # UPLOAD_FOLDER = os.path.join(basedir, 'app/static/uploads')
