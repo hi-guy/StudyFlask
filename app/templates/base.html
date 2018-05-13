@@ -1,5 +1,5 @@
-{% extends 'bootstrap/base.html' %} {% block title %} {% if title %}{{ title }} - Microblog{% else %}Welcome to Microblog{%
-endif %} {% endblock %} {% block navbar %}
+{% extends 'bootstrap/base.html' %} {% block title %} {% if title %}{{ title }} - Microblog{% else %}{{ _('Welcome to Microblog')
+}}{% endif %} {% endblock %} {% block navbar %}
 <nav class="navbar navbar-default">
     <div class="container">
         <div class="navbar-header">
@@ -15,33 +15,11 @@ endif %} {% endblock %} {% block navbar %}
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
             <ul class="nav navbar-nav">
                 <li>
-                    <a href="{{ url_for('main.index') }}">Home</a>
+                    <a href="{{ url_for('main.index') }}">{{ _('Home') }}</a>
                 </li>
                 <li>
-                    <a href="{{ url_for('main.explore') }}">Explore</a>
+                    <a href="{{ url_for('main.explore') }}">{{ _('Explore') }}</a>
                 </li>
-            </ul>
-            <ul class="nav navbar-nav navbar-right">
-                {% if current_user.is_anonymous %}
-                <li>
-                    <a href="{{ url_for('auth.login') }}">Login</a>
-                </li>
-                {% else %}
-                <li>
-                    <a href="{{ url_for('main.messages') }}">
-                        {{ _('Messages') }} {% set new_messages = current_user.new_messages() %}
-                        <span id="message_count" class="badge" style="visibility: {% if new_messages %} visible {% else %} hidden {% endif %};">
-                            {{ new_messages }}
-                        </span>
-                    </a> 
-                </li>
-                <li>
-                    <a href="{{ url_for('main.user', username=current_user.username) }}">Profile</a>
-                </li>
-                <li>
-                    <a href="{{ url_for('auth.logout') }}">Logout</a>
-                </li>
-                {% endif %}
             </ul>
             {% if g.search_form %}
             <form class="navbar-form navbar-left" method="get" action="{{ url_for('main.search') }}">
@@ -50,17 +28,46 @@ endif %} {% endblock %} {% block navbar %}
                 </div>
             </form>
             {% endif %}
+            <ul class="nav navbar-nav navbar-right">
+                {% if current_user.is_anonymous %}
+                <li>
+                    <a href="{{ url_for('auth.login') }}">{{ _('Login') }}</a>
+                </li>
+                {% else %}
+                <li>
+                    <a href="{{ url_for('main.messages') }}">{{ _('Messages') }} {% set new_messages = current_user.new_messages() %}
+                        <span id="message_count" class="badge" style="visibility: {% if new_messages %}visible
+                                                     {% else %}hidden{% endif %};">
+                            {{ new_messages }}
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('main.user', username=current_user.username) }}">{{ _('Profile') }}</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
     </div>
 </nav>
 {% endblock %} {% block content %}
 <div class="container">
-    {% with messages = get_flashed_messages() %} {% if messages %} {% for message in messages %}
+    {% if current_user.is_authenticated %} {% with tasks = current_user.get_tasks_in_progress() %} {% if tasks %} {% for task
+    in tasks %}
+    <div class="alert alert-success" role="alert">
+        {{ task.description }}
+        <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
+    </div>
+    {% endfor %} {% endif %} {% endwith %} {% endif %} {% with messages = get_flashed_messages() %} {% if messages %} {% for
+    message in messages %}
     <div class="alert alert-info" role="alert">{{ message }}</div>
     {% endfor %} {% endif %} {% endwith %} {# application content needs to be provided in the app_content block #} {% block app_content
     %}{% endblock %}
 </div>
-{% endblock %} {% block scripts %} {{ super() }} {{ moment.include_moment() }}
+{% endblock %} {% block scripts %} {{ super() }} {{ moment.include_moment() }} {{ moment.lang(g.locale) }}
 <script>
     function translate(sourceElem, destElem, sourceLang, destLang) {
         $(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
@@ -69,12 +76,11 @@ endif %} {% endblock %} {% block navbar %}
             source_language: sourceLang,
             dest_language: destLang
         }).done(function (response) {
-            $(destElem).text(response['text']);
+            $(destElem).text(response['text'])
         }).fail(function () {
             $(destElem).text("{{ _('Error: Could not contact server.') }}");
-        })
+        });
     }
-
     $(function () {
         var timer = null;
         var xhr = null;
@@ -87,8 +93,7 @@ endif %} {% endblock %} {% block navbar %}
                     xhr = $.ajax(
                         '/user/' + elem.first().text().trim() + '/popup').done(
                             function (data) {
-                                xhr = null
-                                // create and display popup here
+                                xhr = null;
                                 elem.popover({
                                     trigger: 'manual',
                                     html: true,
@@ -113,18 +118,18 @@ endif %} {% endblock %} {% block navbar %}
                     xhr = null;
                 }
                 else {
-                    // destroy popup here
                     elem.popover('destroy');
                 }
             }
-        )
+        );
     });
-
     function set_message_count(n) {
         $('#message_count').text(n);
         $('#message_count').css('visibility', n ? 'visible' : 'hidden');
     }
-
+    function set_task_progress(task_id, progress) {
+        $('#' + task_id + '-progress').text(progress);
+    }
     {% if current_user.is_authenticated %}
     $(function () {
         var since = 0;
@@ -132,8 +137,15 @@ endif %} {% endblock %} {% block navbar %}
             $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
                 function (notifications) {
                     for (var i = 0; i < notifications.length; i++) {
-                        if (notifications[i].name == 'unread_message_count')
-                            set_message_count(notifications[i].data);
+                        switch (notifications[i].name) {
+                            case 'unread_message_count':
+                                set_message_count(notifications[i].data);
+                                break;
+                            case 'task_progress':
+                                set_task_progress(notifications[i].data.task_id,
+                                    notifications[i].data.progress);
+                                break;
+                        }
                         since = notifications[i].timestamp;
                     }
                 }
@@ -141,5 +153,4 @@ endif %} {% endblock %} {% block navbar %}
         }, 10000);
     });
     {% endif %}
-
 </script> {% endblock %}

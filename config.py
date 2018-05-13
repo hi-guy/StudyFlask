@@ -24,4 +24,5 @@ class Config(object):
     MS_TRANSLATOR_KEY = os.getenv('MS_TRANSLATOR_KEY')
     ELASTICSEARCH_URL = os.getenv('ELASTICSEARCH_URL')
     UPLOAD_FOLDER = 'static/uploads'
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     # UPLOAD_FOLDER = os.path.join(basedir, 'app/static/uploads')
