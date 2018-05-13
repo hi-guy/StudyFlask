@@ -1,28 +1,16 @@
+import json
+import sys
 import time
+from flask import render_template
 from rq import get_current_job
 from app import create_app, db
-from app.models import Task, User, Post
-from flask import render_template
+from app.models import User, Post, Task
 from app.email import send_email
-import json
 
 app = create_app()
 app.app_context().push()
 
 
-def example(seconds):
-    job = get_current_job()
-    print('Starting task')
-    for i in range(seconds):
-        job.meta['progress'] = 100.0 * i / seconds
-        job.save_meta()
-        print(i)
-        time.sleep(1)
-    job.meta['progress'] = 100
-    job.save_meta()
-    print('Task completed')
-
-  
 def _set_task_progress(progress):
     job = get_current_job()
     if job:
@@ -38,7 +26,6 @@ def _set_task_progress(progress):
 
 def export_posts(user_id):
     try:
-        # read user posts from database
         user = User.query.get(user_id)
         _set_task_progress(0)
         data = []
@@ -51,15 +38,14 @@ def export_posts(user_id):
             i += 1
             _set_task_progress(100 * i // total_posts)
 
-        # send email with data to user
         send_email('[Microblog] Your blog posts',
-                sender=app.config['ADMINS'][0], recipients=[user.email],
+                sender=app.config['MAIL_DEFAULT_SENDER'], recipients=[user.email],
                 text_body=render_template('email/export_posts.txt', user=user),
-                html_body=render_template('email/export_posts.html', user=user),
+                html_body=render_template('email/export_posts.html',
+                                          user=user),
                 attachments=[('posts.json', 'application/json',
                               json.dumps({'posts': data}, indent=4))],
                 sync=True)
     except:
-        # handle unexpected errors
         _set_task_progress(100)
         app.logger.error('Unhandled exception', exc_info=sys.exc_info())
