@@ -7,7 +7,7 @@ docker run --name microblog -d -p 8000:5000 --rm -e SECRET_KEY=sbsbsbsbsbsbsbsbs
     -e DATABASE_URL=mysql+pymysql://microblog:123456@dbserver/microblog \
     --link elasticsearch:elasticsearch \
     -e ELASTICSEARCH_URL=http://elasticsearch:9200 \
-    --link redis:redis-server
+    --link redis:redis-server \
     -e REDIS_URL=redis://redis-server:6379/0 \
     microblog:latest
 
@@ -19,7 +19,7 @@ $ docker run --name rq-worker -d --rm -e SECRET_KEY=sbsbsbsbsbsbsbsbsbsb \
     -e MAIL_USE_TLS=False -e MAIL_USE_SSL=True \
     --link mysql:dbserver \
     -e DATABASE_URL=mysql+pymysql://microblog:123456@dbserver/microblog \
-    --link redis:redis-server
+    --link redis:redis-server \
     -e REDIS_URL=redis://redis-server:6379/0 \
     --entrypoint venv/bin/rq \
     microblog:latest worker -u redis://redis-server:6379/0 microblog-tasks
